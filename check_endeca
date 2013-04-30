@@ -1,0 +1,168 @@
+#!/usr/bin/perl -w
+
+=head1 NAME
+
+check_endeca - Nagios plugin to poll Endeca dgraph status
+
+=cut
+
+# The POD text continues at the end of the file.
+
+use strict;
+
+use Data::Dumper;   ### For generating debug output in verbose mode
+use LWP::UserAgent; ### For communicating with the webserver
+use Nagios::Plugin; ### For communicating with the nagios server
+
+
+### Initialize the plugin
+my $plugin = Nagios::Plugin->new( 
+	shortname => "ENDECA",
+    usage => "Usage: check_endeca -H <host_name> -P port "
+    	    ."(-w <warning_threshold> -c <critical_threshold>) "
+			."[-v] [-t <timeout>]",
+	version => '0.1.1',
+	url     => 'http://dann.stayskal.com/software/check_endeca',
+	license => 'This nagios plugin is free software, and comes with '
+			  ."ABSOLUTELY NO WARRANTY.\nIt may be used, redistributed "
+			  ."and/or modified under the terms of the \nGNU General "
+			  .'Public Licence. See LICENSE.txt for more information.',
+	plugin  => 'check_apache'
+);
+
+
+### Add arguments for secure mode, username, and password
+$plugin->add_arg(
+	spec => 'warning|w=s',
+	help => "-w, --warning=INTEGER\n   Threshold at which this measurement "
+		   .'should generate a WARNING condiiton'
+);
+$plugin->add_arg(
+	spec => 'critical|c=s',
+	help => "-c, --critical=INTEGER\n   Threshold at which this measurement "
+		   .'should generate a CRITICAL condiiton'
+);
+$plugin->add_arg(
+	spec => 'host_name|H=s',
+	help => "-H --host_name=STRING",
+	required => 1
+);
+$plugin->add_arg(
+	spec => 'port|P=s',
+	help => "-P --port=INTEGER\n   Port on which dgraph is listening (default 29658)",
+	default => 29658
+);
+
+
+### Parse command line options
+$plugin->getopts;
+$plugin->set_thresholds(
+	warning => $plugin->opts->warning,
+	critical => $plugin->opts->critical,
+);
+print 'Dump of $plugin: ' . Dumper($plugin) if $plugin->opts()->verbose >= 3;
+
+
+### Set timeout clock
+alarm($plugin->opts()->timeout);
+local $SIG{ALRM} = sub { 
+	$plugin->nagios_exit( UNKNOWN, "Host timed out" );
+};
+
+
+### Construct and get the URL
+my $url = 'http://'.$plugin->opts->host_name.':'.$plugin->opts->port().'/admin?op=ping';
+print "Getting URL: $url\n" if $plugin->opts->verbose >= 2;
+
+my $user_agent = LWP::UserAgent->new;
+my $request = HTTP::Request->new( GET=> $url );
+my $response = $user_agent->request($request);
+if($plugin->opts->verbose >= 3) {
+	print "Server response:\n" . $response->as_string . "\n\n"
+}
+
+
+### Stop here unless the request came back OK
+my $response_summary = "Host returned HTTP code $response->{_rc}.";
+unless($response && $response->{_rc} == 200){
+	$plugin->nagios_exit(UNKNOWN, $response_summary);
+}
+
+
+### Parse for what they're looking for
+if($response->as_string =~ /dgraph/ && $response->as_string =~ /responding/) {
+	$plugin->nagios_exit( OK, 'dgraph responding' );
+} else {
+	$plugin->nagios_exit( CRITICAL, 'dgraph not responding' );
+}
+
+
+=head1 DESCRIPTION
+
+This script acts as a plugin module for the Nagios IT infrastructure monitoring 
+system. It polls an Endeca server for dgraph status information and responds with 
+a status string and appropriate exit status.
+
+=head1 SYNOPSIS
+
+=head2 Command Line Interface
+
+Poll status on a server with no encryption or authentication:
+
+	check_endeca -H your_host.com 
+
+=head2 Running within Nagios
+
+In objects/commands.cfg:
+
+	define command{
+        command_name    check_endeca
+        command_line    $USER1$/check_endeca -H $HOSTNAME$
+	}
+        
+In the configuration file for your host with apache running on it:
+
+	define service{
+        use                   local-service
+        host_name             your.hostname.com
+        service_description   Endeca DGraph
+        check_command         check_endeca
+	}
+
+=head1 SEE ALSO
+
+If using an external configuration file, it should be structured according to 
+the specification at <http://nagiosplugins.org/extra-opts/>.
+
+This module is built upon L<Nagios::Plugin> by the Nagios Plugin Development
+Team.  Further reading on Nagios, NPRE, and Nagios Plugins is available at
+<http://nagios.com/>.
+
+=head1 AUTHOR
+
+This script is written and maintained by Dann Stayskal <dann@stayskal.com>
+and is available on his website, at
+<http://dann.stayskal.com/software/check_endeca/>.
+
+=head1 LICENSE
+
+Copyright (C) 2013 by Dann Stayskal.
+
+This program is free software; you can redistribute it and/or modify it under 
+the terms of the GNU General Public License as published by the Free Software 
+Foundation; either version 2 of the License, or (at your option) any later 
+version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with 
+this program; if not, write to the Free Software Foundation, Inc., 59 Temple 
+Place, Suite 330, Boston, MA 02111-1307 USA
+
+Nagios, the Nagios logo, and Nagios graphics are the servicemarks, trademarks, 
+or registered trademarks owned by Nagios Enterprises. All other servicemarks 
+and trademarks are the property of their respective owner.
+
+=cut
