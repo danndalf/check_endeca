@@ -40,12 +40,12 @@ SEE ALSO
     available at <http://nagios.com/>.
 
 AUTHOR
-    This script is written and maintained by Dann Stayskal
-    <dann@stayskal.com> and is available on his website, at
-    <http://dann.stayskal.com/software/check_endeca/>.
+    This script is written and maintained by Danne Stayskal
+    <danne@stayskal.com> and is available on his website, at
+    <http://danne.stayskal.com/software/check_endeca/>.
 
 LICENSE
-    Copyright (C) 2013 by Dann Stayskal.
+    Copyright (C) 2013 by Danne Stayskal.
 
     This program is free software; you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by the
