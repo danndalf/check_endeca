@@ -10,9 +10,9 @@ check_endeca - Nagios plugin to poll Endeca dgraph status
 
 use strict;
 
-use Data::Dumper;   ### For generating debug output in verbose mode
-use LWP::UserAgent; ### For communicating with the webserver
-use Nagios::Plugin; ### For communicating with the nagios server
+use Data::Dumper;               ### For generating debug output in verbose mode
+use LWP::UserAgent;             ### For communicating with the webserver
+use Nagios::Monitoring::Plugin; ### For communicating with the nagios server
 
 
 ### Initialize the plugin
